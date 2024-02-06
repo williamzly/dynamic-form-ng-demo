@@ -1,0 +1,19 @@
+<!-- 如果当前control是group类型，那么就递归，否则就按照type渲染-->
+<div [formGroup]="group">
+    <div *ngIf="isFormGroup(); else singleField">
+        <div *ngFor="let subControlName of getSubControlNames()">
+            <app-form-field [group]="getAsFormGroup()" [controlName]="subControlName"
+                [flattenedFormData]="flattenedFormData">
+            </app-form-field>
+        </div>
+    </div>
+    <ng-template #singleField>
+
+        <div *ngIf="fieldInfo?.type === 'text'">
+            <label>{{ fieldInfo.name }}</label>
+            <input type="text" [formControlName]="fieldInfo.name">
+        </div>
+
+        <!-- 可以根据需要添加更多的字段类型 -->
+    </ng-template>
+</div>

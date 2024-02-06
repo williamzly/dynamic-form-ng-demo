@@ -1,13 +1,71 @@
 import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { FormService } from './form.service';
 
 @Component({
   selector: 'app-root',
-  standalone: true,
-  imports: [RouterOutlet],
   templateUrl: './app.component.html',
-  styleUrl: './app.component.scss'
+  styleUrls: ['./app.component.css']
 })
 export class AppComponent {
-  title = 'dynamic-form';
+
+  constructor(private formService: FormService) {}
+  
+  ngOnInit() {
+    this.formService.updateFormData(
+      {
+        po: 'a',
+        fields: [
+          {
+            name: '1',
+            value: null,
+            type: 'text',
+            condition: [],
+            children: [
+              {
+                name: '1.1',
+                value: null,
+                type: 'text',
+                condition: ['A'],
+                children: [
+                  {
+                    name: '1.1.1',
+                    value: null,
+                    type: 'text',
+                    condition: ['A'],
+                    children: []
+                  },
+                ]
+              },
+              {
+                name: '1.2',
+                value: null,
+                type: 'text',
+                condition: ['A', 'B'],
+                children: []
+              },
+            ]
+          },
+          {
+            name: '2',
+            value: null,
+            type: 'text',
+            condition: [],
+            children: []
+          },
+          {
+            name: '3',
+            value: null,
+            type: 'text',
+            condition: [],
+            children: []
+          },
+        ]
+      }
+    )
+  }
+
+  getJsonData() {
+    return JSON.stringify(this.formService.formData, null, 4)
+  }
+
 }

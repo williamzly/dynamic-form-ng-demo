@@ -1,41 +1,41 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
-import { FormService } from './form.service';
+import { FormService } from '../form.service';
 
 @Component({
   selector: 'app-dynamic-form',
   templateUrl: './dynamic-form.component.html',
-  styleUrls: ['./dynamic-form.component.css']
 })
 // 该实现的ControlValueAccessor还是不变，但是不需要validator，没有必要
 export class DynamicFormComponent implements OnInit {
-  form: FormGroup;
-  private formSubscription: Subscription;
+  form: FormGroup = this.fb.group({});
   // 我这里简单的就考虑这个formData是一个数组，即你的fields，但实际这个应该是一个json,你用的时候注意套一层就行
-  formData = {};
+  formData :any = {};
   get fields() {
     return this.formData.fields;
   }
+  private formSubscription!: Subscription
 
   constructor(private fb: FormBuilder, private formService: FormService) {}
 
   ngOnInit() {
-    this.form = this.fb.group({});
     // formService就是你的pulicationService，这里有几点和现在不一样
     // 第一是你需要把inventoryData由原本的get方式改为监听，监听怎么实现参考FormService里面，这个的用处是保证当数据变动的时候，始终都要去buildForm
     // 第二，你原来注册的监听POchange的逻辑，也应该由pulicationService来实现，总之就是把数据变动的权利交给pulicationService，而我们只监听数据变动
     this.formSubscription = this.formService.formData$.subscribe(formData => {
       // 根据formData构建表单
+      console.log('listened change of form data, start buildForm', formData)
       this.buildForm(this.form, formData.fields, null);
+      console.log('complete buildForm', this.form)
       this.formData = formData;
     });
 
     // 监听表单变化，并实时同步数据到formService，保持数据格式一致
     this.form.valueChanges.subscribe(values => {
       // 处理values以确保格式一致性
-      const processedValues = this.processFormValues(values);
-      this.formService.updateFormData(processedValues, false); // 更新数据但不通知订阅者
+      this.processFormValues(this.fields, values);
+      this.formService.updateFormData(this.formData, false); // 更新数据但不通知订阅者
     });
   }
 
@@ -69,7 +69,7 @@ export class DynamicFormComponent implements OnInit {
         if (!group.contains(child.name)) {
           const control = this.fb.control(child.value);
           group.addControl(child.name, control);
-          if (child.children) {
+          if (child.children?.length) {
             const childGroup = this.fb.group({});
             group.addControl(child.name + '_group', childGroup);
             // control只有被加入的时候才会去继续检查它的children，并且附加一个监听事件
@@ -96,14 +96,11 @@ export class DynamicFormComponent implements OnInit {
   }
 
   // 这个flattenedFormData 是用field name和field本身作为一个object存储，因为后面我们渲染完form，form对象就不包含我们需要的一些信息了，比如这个field的type
-  flattenFormData(fields: Field[]): { [key: string]: any } {
+  flattenFormData(fields: any[]): { [key: string]: any } {
     return fields.reduce((acc, field) => {
-      if (field.hasOwnProperty('name')) {
-        acc[field.name] = field;
-      } else {
-        // 递归处理嵌套结构
-        Object.assign(acc, this.flattenFormData(field.children));
-      }
+      acc[field.name] = field;
+      // 递归处理嵌套结构
+      Object.assign(acc, this.flattenFormData(field.children));
       return acc;
     }, {});
   }
@@ -112,9 +109,14 @@ export class DynamicFormComponent implements OnInit {
     return Object.keys(this.form.controls);
   }
 
-  processFormValues(values: any): any {
+  processFormValues(fields: [], values: any): any {
+    console.log('processFormValues', fields, values)
+    if (!fields?.length || !values) return
     // 根据需要处理values以确保和formData格式一致
     // 这个地方就是你需要把form里面的value,给补充到Field中的answer中去，紧接着就会把最新的data给到publicationService
-    return values;
+    fields.forEach((field: any) => {
+        field.value = values[field.name] 
+        this.processFormValues(field.children, values[field.name + '_group'])
+    });
   }
 }
