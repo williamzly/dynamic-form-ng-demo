@@ -1,0 +1,9 @@
+<form [formGroup]="form">
+    <div *ngFor="let controlName of formControlsNames()">
+      <app-form-field 
+        [formGroup]="form" 
+        [controlName]="controlName" 
+        [flattenedFormData]="flattenFormData()">
+      </app-form-field>
+    </div>
+  </form>
